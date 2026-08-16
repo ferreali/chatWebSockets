@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Chat em Tempo Real</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main class="chat-container">
+
+        <header class="chat-header">
+            <h1>Chat em Tempo Real</h1>
+
+            <p id="status">
+                Conectando ao servidor...
+            </p>
+        </header>
+
+        <section class="chat-form">
+
+            <label for="name">Seu nome</label>
+
+            <input
+                type="text"
+                id="name"
+                placeholder="Digite seu nome"
+            >
+
+            <label for="message">Mensagem</label>
+
+            <input
+                type="text"
+                id="message"
+                placeholder="Digite sua mensagem"
+            >
+
+            <button id="sendButton">
+                Enviar mensagem
+            </button>
+
+        </section>
+
+        <section class="message-area">
+
+            <h2>Mensagens</h2>
+
+            <div id="messages"></div>
+
+        </section>
+
+    </main>
+
+    <script>
+        // Cria uma conexão com o servidor WebSocket
+        const ws = new WebSocket("ws://localhost:8081");
+
+        // Seleciona os elementos da página
+        const nameInput = document.getElementById("name");
+        const messageInput = document.getElementById("message");
+        const sendButton = document.getElementById("sendButton");
+        const messagesDiv = document.getElementById("messages");
+        const statusText = document.getElementById("status");
+
+        // Executado quando a conexão for estabelecida
+        ws.addEventListener("open", () => {
+            statusText.textContent = "Conectado";
+            statusText.className = "connected";
+        });
+
+        // Executado quando uma mensagem for recebida
+        ws.addEventListener("message", (event) => {
+            mostrarMensagem(event.data);
+        });
+
+        // Executado quando a conexão for fechada
+        ws.addEventListener("close", () => {
+            statusText.textContent = "Desconectado";
+            statusText.className = "disconnected";
+
+            mostrarMensagem(
+                "SISTEMA: A conexão com o servidor foi encerrada."
+            );
+        });
+
+        // Executado quando ocorrer um erro
+        ws.addEventListener("error", () => {
+            statusText.textContent = "Erro na conexão";
+            statusText.className = "disconnected";
+        });
+
+        // Chama a função quando o botão é clicado
+        sendButton.addEventListener("click", enviarMensagem);
+
+        // Permite enviar com a tecla Enter
+        messageInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                enviarMensagem();
+            }
+        });
+
+        function enviarMensagem() {
+            const nome = nameInput.value.trim();
+            const mensagem = messageInput.value.trim();
+
+            if (nome === "" || mensagem === "") {
+                alert("Preencha o nome e a mensagem.");
+                return;
+            }
+
+            if (ws.readyState !== WebSocket.OPEN) {
+                alert("O chat ainda não está conectado.");
+                return;
+            }
+
+            const mensagemCompleta = `${nome}: ${mensagem}`;
+
+            ws.send(mensagemCompleta);
+
+            messageInput.value = "";
+            messageInput.focus();
+        }
+
+        function mostrarMensagem(texto) {
+            const paragrafo = document.createElement("p");
+
+            paragrafo.textContent = texto;
+
+            if (texto.startsWith("SISTEMA:")) {
+                paragrafo.classList.add("system-message");
+            }
+
+            messagesDiv.appendChild(paragrafo);
+
+            // Mantém a mensagem mais recente visível
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+
+</body>
+
+</html>
